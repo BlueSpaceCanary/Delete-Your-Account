@@ -5,7 +5,7 @@ import "github.com/dghubble/go-twitter/twitter"
 import "io/ioutil"
 import "log"
 import "time"
-
+import "rand"
 
 func main() {
 	ck, err := ioutil.ReadFile("consumer_key")
@@ -37,7 +37,10 @@ func main() {
 		log.Fatal("Failed to load followers at startup")
 	}
 
-	
+	for {
+		go loop(cl, followers)
+		time.Sleep(time.Minute * 15)
+	}
 }
 
 // On startup we load our follower list, and once a day we reload it
@@ -48,7 +51,7 @@ func getFollowers(cl twitter.Client) []string {
 		log.Errorf("Failed to get followers: %v")
 		return nil
 	}
-	
+
 	var fol []string
 	for _, user := range followers {
 		fol = append(fol, user.ScreenName)
@@ -63,18 +66,22 @@ func getFollowers(cl twitter.Client) []string {
 			time.Sleep(time.Minute * 15)
 			continue
 		}
-		
+
 		// if we succeded, update cursor and keep going
 		cursor = followers.cursor
 		for _, user := range followers {
 			fol = append(fol, user.ScreenName)
-		} 
+		}
 	}
 
 	return fol
 }
 
-
 func loop(cl twitter.Client, followers []string) {
-	
+	// pick a random follower!
+	i := rand.Intn(len(followers))
+	ts := fmt.Sprintf("@%s, you should delete your account! You'd be free of this website!", followers[i])
+	if twete, _, err := cl.Statuses.Update(ts, nil); err != nil {
+		log.Errorf("Failed to post tweet %v: %v", twete, err)
+	}
 }
